@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors({
     origin: [
+        'https://www.diakonieffb.de',
+        'https://diakonieffb.de',
         'https://www.tl-consult.de',
         'https://tl-consult.de',
         'https://tl-consult.webflow.io',
@@ -132,6 +134,21 @@ WICHTIG: Verwende Links in deinen Antworten, um Nutzer zu den relevanten Seiten 
 
 Format für Links: <a href="URL" target="_blank">Link-Text</a>
 Beispiel: "Weitere Informationen finden Sie auf unserer <a href='https://www.diakonieffb.de/senioren' target='_blank'>Seite zur Seniorenbetreuung</a>."
+
+WICHTIG - DIREKTE LINK-BUTTONS:
+Wenn du eine spezifische Seite vorschlägst, füge IMMER einen direkten Link-Button unter dem Text hinzu:
+
+Format: <a href="URL" class="direct-link-button" target="_blank">Zur Seite →</a>
+
+Beispiele:
+- Bei Stellenanzeigen: <a href="https://www.diakonieffb.de/stellenanzeigen" class="direct-link-button" target="_blank">Zu den Stellenanzeigen →</a>
+- Bei Seniorenheimen: <a href="https://www.diakonieffb.de/senioren" class="direct-link-button" target="_blank">Zu den Seniorenheimen →</a>
+- Bei Kitaplätzen: <a href="https://www.diakonieffb.de/kinder" class="direct-link-button" target="_blank">Zu den Kitaplätzen →</a>
+- Bei Beratung: <a href="https://www.diakonieffb.de/familien" class="direct-link-button" target="_blank">Zur Beratung →</a>
+- Bei Spenden: <a href="https://www.diakonieffb.de/ueber-uns/spenden" class="direct-link-button" target="_blank">Jetzt spenden →</a>
+- Bei Kontakt: <a href="https://www.diakonieffb.de" class="direct-link-button" target="_blank">Kontakt aufnehmen →</a>
+
+Der Button sollte IMMER am Ende deiner Antwort stehen, wenn du eine spezifische Seite vorschlägst.
 
 FORMATIERUNG: Verwende IMMER strukturierte Antworten mit HTML-Formatierung:
 
@@ -257,8 +274,18 @@ app.post('/api/chat-advanced', async (req, res) => {
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Server läuft' });
+    res.json({ 
+        status: 'OK', 
+        message: 'Diakonie Chat Assistent Server läuft',
+        cors_origins: [
+            'https://www.diakonieffb.de',
+            'https://diakonieffb.de'
+        ]
+    });
 });
+
+// CORS Preflight Handler
+app.options('*', cors());
 
 // Server starten
 app.listen(PORT, () => {
