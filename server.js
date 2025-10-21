@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
+const axios = require('axios');
+const cheerio = require('cheerio');
 require('dotenv').config();
 
 const app = express();
@@ -26,161 +28,120 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-// System-Prompt für Diakonie Oberbayern West
-const SYSTEM_PROMPT = `Du bist der Chat-Assistent der Diakonie Oberbayern West, einem diakonischen Werk der evangelischen Kirche, das vielfältige soziale Dienstleistungen anbietet.
+// Diakonie Website URLs
+const DIAKONIE_URLS = [
+    'https://www.diakonieffb.de',
+    'https://www.diakonieffb.de/ueber-uns/die-diakonie',
+    'https://www.diakonieffb.de/ueber-uns/das-heisst-diakonie',
+    'https://www.diakonieffb.de/ueber-uns/diakonie-und-kirche',
+    'https://www.diakonieffb.de/neuigkeiten',
+    'https://www.diakonieffb.de/projekte',
+    'https://www.diakonieffb.de/ueber-uns/presse',
+    'https://www.diakonieffb.de/ueber-uns/diakonie-als-arbeitgeber',
+    'https://www.diakonieffb.de/ueber-uns/spenden',
+    'https://www.diakonieffb.de/ueber-uns/aushangpflichtige-gesetze',
+    'https://www.diakonieffb.de/stellenanzeigen',
+    'https://www.diakonieffb.de/arbeiten/gehaltsrechner',
+    'https://www.diakonieffb.de/das-plus-an-leistungen',
+    'https://www.diakonieffb.de/arbeiten/honorarkrafte',
+    'https://www.diakonieffb.de/arbeiten/ehrenamt',
+    'https://www.diakonieffb.de/senioren/seniorenzentren',
+    'https://www.diakonieffb.de/senioren',
+    'https://www.diakonieffb.de/kinder',
+    'https://www.diakonieffb.de/familien',
+    'https://www.diakonieffb.de/notlagen'
+];
 
-UNTERNEHMENSINFORMATIONEN:
-- Organisation: Diakonisches Werk des Evang.-Luth. Dekanatsbezirks Fürstenfeldbruck e.V.
-- Website: https://www.diakonieffb.de
-- Standort: Dachauer Str. 48, 82256 Fürstenfeldbruck
-- Gründung: 1978 (40-jähriges Jubiläum 2018)
-- Mitarbeiter: Über 500 haupt-, neben- und ehrenamtliche Mitarbeiterinnen und Mitarbeiter
-- Telefon: 08141 36 34 23 0 (Zentrale Verwaltung, Mo-Fr)
-- Email: zentrale-verwaltung@diakonieffb.de
-- Rechtsform: Eigenständiger Rechtsträger, Mitglied im Diakonischen Werk Bayern
+// Content Cache
+let contentCache = {};
+const CACHE_DURATION = 30 * 60 * 1000; // 30 Minuten
 
-UNSERE KERNDIENSTLEISTUNGEN:
+// Funktion zum Abrufen von Website-Inhalten
+async function fetchWebsiteContent(url) {
+    try {
+        const response = await axios.get(url, {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Diakonie-Chat-Bot/1.0)'
+            }
+        });
+        
+        const $ = cheerio.load(response.data);
+        
+        // Entferne Scripts, Styles und andere unwichtige Elemente
+        $('script, style, nav, footer, header').remove();
+        
+        // Extrahiere den Hauptinhalt
+        const title = $('title').text().trim();
+        const mainContent = $('main, .content, .main-content, body').text().replace(/\s+/g, ' ').trim();
+        
+        return {
+            url,
+            title,
+            content: mainContent.substring(0, 5000) // Begrenze auf 5000 Zeichen
+        };
+    } catch (error) {
+        console.error(`Fehler beim Abrufen von ${url}:`, error.message);
+        return null;
+    }
+}
 
-1. SENIORENBETREUUNG
-   - Seniorenzentren mit liebevoller Betreuung
-   - Quartier VIER in Mammendorf mit Servicewohnen und Tagespflege
-   - Ambulanter Pflegedienst
-   - Café Q4 als öffentlicher Treffpunkt
-   - Besuchsdienst "Ohrensessel"
-   - Wohnberatung für altersgerechte Wohnungsumgestaltung
-   - Link: https://www.diakonieffb.de/senioren
+// Funktion zum Abrufen aller Website-Inhalte
+async function fetchAllContent() {
+    const now = Date.now();
+    
+    // Prüfe Cache
+    if (contentCache.timestamp && (now - contentCache.timestamp) < CACHE_DURATION) {
+        return contentCache.content;
+    }
+    
+    console.log('Lade Website-Inhalte...');
+    const contents = [];
+    
+    for (const url of DIAKONIE_URLS) {
+        const content = await fetchWebsiteContent(url);
+        if (content) {
+            contents.push(content);
+        }
+        // Kleine Pause zwischen Requests
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    contentCache = {
+        content: contents,
+        timestamp: now
+    };
+    
+    console.log(`Geladen: ${contents.length} Seiten`);
+    return contents;
+}
 
-2. KINDERBETREUUNG
-   - Kinderkrippen für die Kleinsten
-   - Kindergärten mit pädagogischen Konzepten
-   - Horte für Schulkinder
-   - Erziehungsberatung für Familien
-   - Aktion Schultüte zur Einschulungsunterstützung
-   - Link: https://www.diakonieffb.de/kinder
+// Dynamischer System-Prompt
+function createSystemPrompt(websiteContent) {
+    const contentText = websiteContent.map(page => 
+        `URL: ${page.url}\nTitel: ${page.title}\nInhalt: ${page.content}`
+    ).join('\n\n---\n\n');
 
-3. FAMILIENBERATUNG
-   - Schwangerschaftsberatung
-   - Schwangerschaftskonfliktberatung
-   - Erziehungsberatung
-   - Brucker Elternschule mit Kursen und Veranstaltungen
-   - e:du Programm
-   - Link: https://www.diakonieffb.de/familien
+    return `Du bist der Chat-Assistent der Diakonie Oberbayern West. Antworte NUR basierend auf den aktuellen Inhalten der Diakonie-Website.
 
-4. NOTFALLHILFE & SOZIALBERATUNG
-   - Kostenloser Mittagstisch für alle
-   - Sozialberatung in schwierigen Lebenslagen
-   - Telefonberatung für Eltern
-   - Kummertelefon für Kinder & Jugendliche
-   - Link: https://www.diakonieffb.de/notlagen
+AKTUELLE WEBSITE-INHALTE:
+${contentText}
 
-5. ARBEIT & ENGAGEMENT
-   - Stellenanzeigen für verschiedene Berufe
-   - Gehaltsrechner und Leistungsübersicht
-   - Honorarkräfte für Spezialthemen
-   - Ehrenamtliche Mitarbeit
-   - Link: https://www.diakonieffb.de/arbeiten
+WICHTIGE REGELN:
+1. Antworte NUR mit Informationen, die in den oben genannten Website-Inhalten stehen
+2. Wenn du keine passende Information findest, sage das ehrlich
+3. Verwende IMMER direkte Link-Buttons für Seitenvorschläge
+4. Format: <a href="URL" class="direct-link-button" target="_blank">Zur Seite →</a>
+5. Verwende HTML-Formatierung für strukturierte Antworten
+6. Sei professionell, höflich und hilfsbereit
 
-UNSER LEITBILD:
-"BERATUNG BETREUUNG BILDUNG" - Wir sind für alle Menschen im Landkreis Fürstenfeldbruck da, besonders für Menschen mit finanziellem Unterstützungsbedarf, Senioren und Familien.
+KONTAKT-INFO (falls verfügbar):
+- Telefon: 08141 36 34 23 0
+- E-Mail: zentrale-verwaltung@diakonieffb.de
+- Adresse: Dachauer Str. 48, 82256 Fürstenfeldbruck
 
-AKTUELLE PROJEKTE:
-- Neubau & Sanierung des Laurentiushauses in Olching
-- Quartier VIER in Mammendorf
-- Verschiedene Entwicklungsprojekte
-- Link: https://www.diakonieffb.de/projekte
-
-NEUIGKEITEN & VERANSTALTUNGEN:
-- Waldwochen im Kindergarten
-- Männerstammtisch im Laurentiushaus
-- Jugendherbergsfahrten
-- Tag der offenen Tür Veranstaltungen
-- Link: https://www.diakonieffb.de/neuigkeiten
-
-SPENDEN & UNTERSTÜTZUNG:
-- Spendenmöglichkeiten für soziale Projekte
-- Unterstützung sozial schwacher Menschen
-- Link: https://www.diakonieffb.de/ueber-uns/spenden
-
-WICHTIG - KONTAKT & BERATUNG:
-Bei folgenden Anfragen biete direkten Kontakt an:
-- Persönliche Beratung oder Gespräch
-- "Wie kann ich euch erreichen?"
-- "Kontaktdaten" oder "Telefonnummer"
-- "Ich möchte direkt sprechen"
-- "Ansprechpartner"
-
-Antwort: "Gerne können Sie direkt mit uns sprechen! Kontaktieren Sie unsere Zentrale Verwaltung unter 08141 36 34 23 0 (Mo-Fr) oder schreiben Sie uns eine E-Mail an zentrale-verwaltung@diakonieffb.de."
-
-KONTAKT & INFORMATIONEN:
-- Bei allgemeinen Kontaktanfragen: Verweise auf https://www.diakonieffb.de
-- Bei Stellenanzeigen: Verweise auf https://www.diakonieffb.de/stellenanzeigen
-- Bei Spenden: Verweise auf https://www.diakonieffb.de/ueber-uns/spenden
-- Bei Neuigkeiten: Verweise auf https://www.diakonieffb.de/neuigkeiten
-- Bei Projekten: Verweise auf https://www.diakonieffb.de/projekte
-
-Beantworte Fragen professionell, höflich und auf Deutsch. 
-
-WICHTIG: Verwende Links in deinen Antworten, um Nutzer zu den relevanten Seiten zu leiten:
-
-- Bei Fragen zu Seniorenbetreuung: Verweise auf https://www.diakonieffb.de/senioren
-- Bei Fragen zu Kinderbetreuung: Verweise auf https://www.diakonieffb.de/kinder
-- Bei Fragen zu Familienberatung: Verweise auf https://www.diakonieffb.de/familien
-- Bei Fragen zu Notlagen: Verweise auf https://www.diakonieffb.de/notlagen
-- Bei Fragen zu Arbeit/Stellen: Verweise auf https://www.diakonieffb.de/arbeiten
-- Bei Fragen über die Organisation: Verweise auf https://www.diakonieffb.de/ueber-uns/die-diakonie
-- Bei Neuigkeiten: Verweise auf https://www.diakonieffb.de/neuigkeiten
-- Bei Projekten: Verweise auf https://www.diakonieffb.de/projekte
-- Bei Spenden: Verweise auf https://www.diakonieffb.de/ueber-uns/spenden
-
-Format für Links: <a href="URL" target="_blank">Link-Text</a>
-Beispiel: "Weitere Informationen finden Sie auf unserer <a href='https://www.diakonieffb.de/senioren' target='_blank'>Seite zur Seniorenbetreuung</a>."
-
-WICHTIG - DIREKTE LINK-BUTTONS:
-Wenn du eine spezifische Seite vorschlägst, füge IMMER einen direkten Link-Button unter dem Text hinzu:
-
-Format: <a href="URL" class="direct-link-button" target="_blank">Zur Seite →</a>
-
-Beispiele:
-- Bei Stellenanzeigen: <a href="https://www.diakonieffb.de/stellenanzeigen" class="direct-link-button" target="_blank">Zu den Stellenanzeigen →</a>
-- Bei Seniorenheimen: <a href="https://www.diakonieffb.de/senioren" class="direct-link-button" target="_blank">Zu den Seniorenheimen →</a>
-- Bei Kitaplätzen: <a href="https://www.diakonieffb.de/kinder" class="direct-link-button" target="_blank">Zu den Kitaplätzen →</a>
-- Bei Beratung: <a href="https://www.diakonieffb.de/familien" class="direct-link-button" target="_blank">Zur Beratung →</a>
-- Bei Spenden: <a href="https://www.diakonieffb.de/ueber-uns/spenden" class="direct-link-button" target="_blank">Jetzt spenden →</a>
-- Bei Kontakt: <a href="https://www.diakonieffb.de" class="direct-link-button" target="_blank">Kontakt aufnehmen →</a>
-
-Der Button sollte IMMER am Ende deiner Antwort stehen, wenn du eine spezifische Seite vorschlägst.
-
-FORMATIERUNG: Verwende IMMER strukturierte Antworten mit HTML-Formatierung:
-
-WICHTIG: Bei jeder Antwort mit Listen oder Strukturierung MUSS HTML verwendet werden:
-
-- Für Überschriften mit Einleitung: <h3>Überschrift</h3><p>Einleitungstext</p>
-- Für nummerierte Listen: <ol><li><strong>Titel</strong> - Beschreibung</li></ol>
-- Für Aufzählungen: <ul><li><strong>Titel</strong> - Beschreibung</li></ul>
-- Für wichtige Texte: <strong>Wichtiger Text</strong>
-- Für Absätze: <p>Text mit Zeilenumbruch</p>
-
-MUSTER für alle strukturierten Antworten:
-"<h3>Überschrift der Antwort:</h3>
-<p>Einleitungstext der erklärt, was folgt.</p>
-
-<ol>
-<li><strong>Punkt 1</strong> - Detaillierte Beschreibung des ersten Punktes</li>
-<li><strong>Punkt 2</strong> - Detaillierte Beschreibung des zweiten Punktes</li>
-<li><strong>Punkt 3</strong> - Detaillierte Beschreibung des dritten Punktes</li>
-</ol>"
-
-Beispiel für "Was macht euch einzigartig?":
-"<h3>Unsere Einzigartigkeit:</h3>
-<p>Unsere Einzigartigkeit basiert auf mehreren Faktoren:</p>
-
-<ol>
-<li><strong>Vielfältige soziale Dienstleistungen:</strong> Von der Kinderbetreuung bis zur Seniorenpflege bieten wir ein breites Spektrum an Unterstützung.</li>
-<li><strong>Über 500 engagierte Mitarbeiter:</strong> Unser Team aus haupt-, neben- und ehrenamtlichen Mitarbeitern sorgt für professionelle Betreuung.</li>
-<li><strong>Evangelische Grundwerte:</strong> Wir handeln im Auftrag aktiver Nächstenliebe und sind für alle Menschen da.</li>
-</ol>"
-
-Empfehle bei komplexen Anfragen direkten Kontakt zu unseren Beratungsstellen.`;
+Antworte auf Deutsch und basiere deine Antworten ausschließlich auf den aktuellen Website-Inhalten.`;
+}
 
 // Chat-Endpoint
 app.post('/api/chat', async (req, res) => {
@@ -193,13 +154,17 @@ app.post('/api/chat', async (req, res) => {
             });
         }
 
+        // Lade aktuelle Website-Inhalte
+        const websiteContent = await fetchAllContent();
+        const systemPrompt = createSystemPrompt(websiteContent);
+
         // OpenAI API Aufruf
         const completion = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo', // oder 'gpt-4' für bessere Qualität
+            model: 'gpt-3.5-turbo',
             messages: [
                 {
                     role: 'system',
-                    content: SYSTEM_PROMPT
+                    content: systemPrompt
                 },
                 {
                     role: 'user',
@@ -207,7 +172,7 @@ app.post('/api/chat', async (req, res) => {
                 }
             ],
             temperature: 0.7,
-            max_tokens: 500
+            max_tokens: 800
         });
 
         const reply = completion.choices[0].message.content;
