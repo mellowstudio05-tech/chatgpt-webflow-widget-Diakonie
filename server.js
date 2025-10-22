@@ -44,7 +44,13 @@ const DIAKONIE_URLS = [
     'https://www.diakonieffb.de/arbeiten/ehrenamt'
 ];
 
-// Web-Scraping Funktion
+// Webflow API URLs (fügen Sie hier Ihre API-URLs hinzu)
+const WEBFLOW_API_URLS = [
+    // Beispiel: 'https://api.webflow.com/v2/collections/your-collection-id/items',
+    // Fügen Sie hier Ihre Webflow API-URLs hinzu
+];
+
+// Web-Scraping Funktion für HTML-Seiten
 async function scrapeDiakonieContent() {
     const content = [];
     
@@ -80,6 +86,73 @@ async function scrapeDiakonieContent() {
     return content;
 }
 
+// Webflow API Funktion
+async function fetchWebflowContent() {
+    const content = [];
+    
+    // Prüfe ob Webflow API Token vorhanden ist
+    if (!process.env.WEBFLOW_API_TOKEN) {
+        console.log('⚠️  Webflow API Token nicht gesetzt - überspringe Webflow APIs');
+        return content;
+    }
+    
+    // Prüfe ob Webflow URLs konfiguriert sind
+    if (WEBFLOW_API_URLS.length === 0) {
+        console.log('⚠️  Keine Webflow API URLs konfiguriert');
+        return content;
+    }
+    
+    for (const apiUrl of WEBFLOW_API_URLS) {
+        try {
+            const response = await axios.get(apiUrl, {
+                timeout: 10000,
+                headers: {
+                    'Authorization': `Bearer ${process.env.WEBFLOW_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            // Webflow API gibt JSON zurück
+            const data = response.data;
+            
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach((item, index) => {
+                    const pageContent = {
+                        url: apiUrl,
+                        title: item.name || item.title || `Webflow Item ${index + 1}`,
+                        content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
+                    };
+                    content.push(pageContent);
+                });
+            } else if (data.data && Array.isArray(data.data)) {
+                data.data.forEach((item, index) => {
+                    const pageContent = {
+                        url: apiUrl,
+                        title: item.name || item.title || `Webflow Item ${index + 1}`,
+                        content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
+                    };
+                    content.push(pageContent);
+                });
+            } else {
+                // Fallback für andere API-Strukturen
+                const pageContent = {
+                    url: apiUrl,
+                    title: 'Webflow API Data',
+                    content: JSON.stringify(data).replace(/\s+/g, ' ').trim()
+                };
+                content.push(pageContent);
+            }
+            
+            console.log(`Webflow API data fetched from: ${apiUrl}`);
+            
+        } catch (error) {
+            console.error(`Error fetching Webflow API ${apiUrl}:`, error.message);
+        }
+    }
+    
+    return content;
+}
+
 // Cache für gescrapte Inhalte
 let scrapedContent = null;
 let lastScrapeTime = 0;
@@ -90,8 +163,15 @@ async function getCurrentContent() {
     const now = Date.now();
     
     if (!scrapedContent || (now - lastScrapeTime) > CACHE_DURATION) {
-        console.log('Scraping fresh content...');
-        scrapedContent = await scrapeDiakonieContent();
+        console.log('Fetching fresh content...');
+        
+        // Kombiniere beide Datenquellen
+        const [diakonieContent, webflowContent] = await Promise.all([
+            scrapeDiakonieContent(),
+            fetchWebflowContent()
+        ]);
+        
+        scrapedContent = [...diakonieContent, ...webflowContent];
         lastScrapeTime = now;
     }
     
@@ -337,8 +417,17 @@ app.listen(PORT, () => {
     console.log(`🔄 Content-Refresh verfügbar unter: http://localhost:${PORT}/api/refresh-content`);
     console.log(`📊 Content-Status verfügbar unter: http://localhost:${PORT}/api/content`);
     
+    // API-Keys prüfen
     if (!process.env.OPENAI_API_KEY) {
         console.warn('⚠️  WARNUNG: OPENAI_API_KEY nicht gesetzt!');
+    } else {
+        console.log('✅ OpenAI API Key konfiguriert');
+    }
+    
+    if (!process.env.WEBFLOW_API_TOKEN) {
+        console.warn('⚠️  WARNUNG: WEBFLOW_API_TOKEN nicht gesetzt! Webflow APIs werden übersprungen.');
+    } else {
+        console.log('✅ Webflow API Token konfiguriert');
     }
     
     // Initiales Scraping beim Start
