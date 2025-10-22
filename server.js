@@ -332,7 +332,7 @@ app.get('/api/content', async (req, res) => {
 
 // Server starten
 app.listen(PORT, () => {
-    console.log(`🚀 Diakonie KI-Assistent Server läuft auf Port ${PORT}`);
+    console.log(`🚀 ChatGPT Webflow Widget - Diakonie Server läuft auf Port ${PORT}`);
     console.log(`💬 Chat-API verfügbar unter: http://localhost:${PORT}/api/chat`);
     console.log(`🔄 Content-Refresh verfügbar unter: http://localhost:${PORT}/api/refresh-content`);
     console.log(`📊 Content-Status verfügbar unter: http://localhost:${PORT}/api/content`);
