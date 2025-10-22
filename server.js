@@ -370,10 +370,11 @@ WICHTIG: Wenn nach einem spezifischen Bereich gefragt wird, zeige NUR die releva
 ANTWORTREGELN:
 - Verwende IMMER die strukturierte HTML-Formatierung mit <h3>, <ul>, <li>, <strong>
 - Gib NIEMALS nur eine Liste von Links aus
-- Bei Stellenanzeigen: Zeige die aktuellen, spezifischen Stellen mit Details an
+- Bei Stellenanzeigen: Zeige die aktuellen, spezifischen Stellen mit Details an UND verlinke jeden Jobtitel mit der entsprechenden Detail-URL
 - Bei Kontaktanfragen: Gib die spezifischen Telefonnummern und E-Mails an
 - Bei Dienstleistungen: Erkläre die konkreten Angebote, nicht nur Links
 - Verwende die gescrapten Website-Inhalte für detaillierte, aktuelle Informationen
+- Für Stellenanzeigen: Verwende <a href="DETAIL_LINK" target="_blank">JOBTITEL</a> Format
 
 VERBOTEN:
 - Generische Link-Listen ohne Erklärung
@@ -386,8 +387,8 @@ Frage: "Welche Stellenanzeigen gibt es?"
 Antwort: "<h3>Unsere aktuellen Stellenangebote:</h3>
 <p>Die Diakonie Oberbayern West hat derzeit folgende Stellen zu vergeben:</p>
 <ul>
-<li><strong>Betreuungsassistenz (m/w/d)</strong> - 20 Std./Woche, Mammendorf, Teilzeit, sofort</li>
-<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Teilzeit, Fürstenfeldbruck, sofort</li>
+<li><strong><a href=\"https://www.diakonieffb.de/stellenanzeigen/betreuungsassistenz-m-w-d-nach-53c-sgb-xi-mit-20-std-wochen-als-krankheitsvertretung\" target=\"_blank\">Betreuungsassistenz (m/w/d)</a></strong> - 20 Std./Woche, Mammendorf, Teilzeit, sofort</li>
+<li><strong><a href=\"https://www.diakonieffb.de/stellenanzeigen/erzieher-in-pad-fachkraft-kinderpfleger-in-pad-erganzungskraft-m-w-d-in-voll--oder-teilzeit\" target=\"_blank\">Erzieher*in / päd. Fachkraft (m/w/d)</a></strong> - Teilzeit, Fürstenfeldbruck, sofort</li>
 </ul>"
 
 Frage: "Wie kann ich die Diakonie kontaktieren?"
@@ -425,15 +426,15 @@ app.post('/api/chat', async (req, res) => {
             if (page.jobListings && page.jobListings.length > 0) {
                 enhancedSystemPrompt += `AKTUELLE STELLENANZEIGEN (${page.jobListings.length} Stellen):\n`;
                 page.jobListings.forEach((job, index) => {
-                    enhancedSystemPrompt += `${index + 1}. ${job.name}`;
+                    enhancedSystemPrompt += `${index + 1}. JOBTITEL: ${job.name}`;
                     if (job.location) enhancedSystemPrompt += ` - Standort: ${job.location}`;
                     if (job.types && job.types.length > 0) enhancedSystemPrompt += ` - Art: ${job.types.join(', ')}`;
                     if (job.bereich) enhancedSystemPrompt += ` - Bereich: ${job.bereich}`;
                     if (job.startDate) enhancedSystemPrompt += ` - Start: ${job.startDate}`;
-                    if (job.detailLink) enhancedSystemPrompt += ` - Link: ${job.detailLink}`;
+                    if (job.detailLink) enhancedSystemPrompt += ` - DETAIL_LINK: ${job.detailLink}`;
                     enhancedSystemPrompt += '\n';
                 });
-                enhancedSystemPrompt += '\n';
+                enhancedSystemPrompt += '\nWICHTIG: Verwende für jede Stellenanzeige das Format <a href="DETAIL_LINK" target="_blank">JOBTITEL</a> in deinen Antworten!\n\n';
             }
         });
 
