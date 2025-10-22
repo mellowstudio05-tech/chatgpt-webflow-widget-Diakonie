@@ -150,6 +150,42 @@ UNSERE LEISTUNGSBEREICHE:
 UNSER LEITBILD:
 Die Diakonie Oberbayern West ist Teil der evangelischen Kirche und erfüllt im Auftrag aktiver Nächstenliebe viele Aufgaben. Wir sind für alle Menschen im Landkreis Fürstenfeldbruck da, besonders aber für Menschen mit finanziellem Unterstützungsbedarf, für Senioren und Familien.
 
+SPEZIFISCHE KONTAKTINFORMATIONEN:
+
+LAURENTIUSHAUS:
+- Telefon: 08142 45 00
+- Email: laurentiushaus@diakonieffb.de
+- Ehrenamt: 08142 450 296
+- Medizinproduktebeauftragter: d.boenisch@sanitaetshaus-boenisch.de
+
+HAUS ELISABETH:
+- Telefon: 089 80 90 30
+- Email: haus-elisabeth@diakonieffb.de
+- Ehrenamt: 089 80 90 30
+- Medizinproduktebeauftragter: d.boenisch@sanitaetshaus-boenisch.de
+
+QUARTIER VIER MAMMENDORF:
+- Servicewohnen: 08141 36 34 23 20, wohnen.mammendorf@diakonieffb.de
+- Tagespflege: 08145 360 37 13, tagespflege.mammendorf@diakonieffb.de
+- Café Q4: 08145 360 37 16, cafe-q4@diakonieffb.de
+
+BESUCHSDIENST OHRENSESSEL:
+- Ehrenamt/Besuchsdienst: 08141 15 06 30, sonja.schluender@diakonieffb.de
+
+WOHNBERATUNG:
+- Ansprechpartnerin: Sonja Schlünder
+- Telefon: 08141 15 06 30
+- Email: sonja.schluender@diakonieffb.de
+
+BEWERBUNGEN & ARBEIT:
+- Honorarkräfte/Bewerbung: 08142 450 131, bewerbung@diakonieffb.de
+- Initiativ-Bewerbung: bewerbung@diakonieffb.de
+- Praktikum/Bewerbung: bewerbung@diakonieffb.de
+
+EVANGELISCHE KIRCHE / DEKANAT:
+- Dekanatsbüro: 08141 666 57 10, dekanat.fuerstenfeldbruck@elkb.de
+- Zusammenarbeit/Beratung für Gemeinden: 08141 15 06 30, sonja.schluender@diakonieffb.de
+
 AKTUELLE PROJEKTE:
 - Neubau & Sanierung des Laurentiushauses in Olching (seit 1984)
 - Quartier VIER in Mammendorf mit Servicewohnen, Tagespflege und Café Q4
@@ -163,6 +199,20 @@ HÄUFIGE FRAGEN:
 - "Brauche ich Beratung bei familiären Problemen?" → Erziehungsberatung, Schwangerschaftsberatung
 - "Gibt es kostenlose Hilfsangebote?" → Mittagstisch, Sozialberatung, Kummertelefon
 - "Wie kann ich mich bewerben?" → Stellenanzeigen, Ehrenamt, Honorarkräfte
+- "Kontakt Laurentiushaus" → 08142 45 00, laurentiushaus@diakonieffb.de
+- "Kontakt Haus Elisabeth" → 089 80 90 30, haus-elisabeth@diakonieffb.de
+- "Ehrenamt Laurentiushaus" → 08142 450 296
+- "Ehrenamt Haus Elisabeth" → 089 80 90 30
+- "Quartier VIER Servicewohnen" → 08141 36 34 23 20, wohnen.mammendorf@diakonieffb.de
+- "Quartier VIER Tagespflege" → 08145 360 37 13, tagespflege.mammendorf@diakonieffb.de
+- "Café Q4" → 08145 360 37 16, cafe-q4@diakonieffb.de
+- "Besuchsdienst Ohrensessel" → 08141 15 06 30, sonja.schluender@diakonieffb.de
+- "Wohnberatung" → 08141 15 06 30, sonja.schluender@diakonieffb.de (Sonja Schlünder)
+- "Bewerbung/Honorarkräfte" → 08142 450 131, bewerbung@diakonieffb.de
+- "Initiativ-Bewerbung" → bewerbung@diakonieffb.de
+- "Praktikum" → bewerbung@diakonieffb.de
+- "Evangelische Kirche/Dekanat" → 08141 666 57 10, dekanat.fuerstenfeldbruck@elkb.de
+- "Zusammenarbeit Gemeinden" → 08141 15 06 30, sonja.schluender@diakonieffb.de
 
 KONTAKT & TERMINE:
 - Bei allgemeinen Anfragen: Verweise auf die Kontaktseite der Website
