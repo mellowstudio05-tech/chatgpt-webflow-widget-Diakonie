@@ -14,7 +14,9 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "WEBFLOW_API_TOKEN": "@webflow_api_token"
   }
 }
 
