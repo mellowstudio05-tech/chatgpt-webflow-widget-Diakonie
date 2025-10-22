@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "chatgpt-webflow-widget-Diakonie",
+  "name": "chatgpt-webflow-widget-diakonie",
   "builds": [
     {
       "src": "server.js",
