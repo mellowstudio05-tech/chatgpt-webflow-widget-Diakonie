@@ -44,13 +44,7 @@ const DIAKONIE_URLS = [
     'https://www.diakonieffb.de/arbeiten/ehrenamt'
 ];
 
-// Webflow API URLs (fügen Sie hier Ihre API-URLs hinzu)
-const WEBFLOW_API_URLS = [
-    'https://api.webflow.com/v2/collections/65ca82983e1a2b02d623b311/items', // Stellenanzeigen Collection
-    // Weitere API-URLs hier hinzufügen
-];
-
-// Web-Scraping Funktion für HTML-Seiten
+// Web-Scraping Funktion
 async function scrapeDiakonieContent() {
     const content = [];
     
@@ -86,102 +80,6 @@ async function scrapeDiakonieContent() {
     return content;
 }
 
-// Webflow API Funktion
-async function fetchWebflowContent() {
-    const content = [];
-    
-    // Prüfe ob Webflow API Token vorhanden ist
-    if (!process.env.WEBFLOW_API_TOKEN) {
-        console.log('⚠️  Webflow API Token nicht gesetzt - überspringe Webflow APIs');
-        return content;
-    }
-    
-    // Prüfe ob Webflow URLs konfiguriert sind
-    if (WEBFLOW_API_URLS.length === 0) {
-        console.log('⚠️  Keine Webflow API URLs konfiguriert');
-        return content;
-    }
-    
-    for (const apiUrl of WEBFLOW_API_URLS) {
-        try {
-            const response = await axios.get(apiUrl, {
-                timeout: 10000,
-                headers: {
-                    'Authorization': `Bearer ${process.env.WEBFLOW_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            // Webflow API gibt JSON zurück
-            const data = response.data;
-            
-            if (data.items && Array.isArray(data.items)) {
-                data.items.forEach((item, index) => {
-                    // Spezielle Behandlung für Stellenanzeigen
-                    if (apiUrl.includes('65ca82983e1a2b02d623b311')) {
-                        // Cover-Bild URL extrahieren
-                        let coverImageUrl = '';
-                        if (item.cover && item.cover.url) {
-                            coverImageUrl = item.cover.url;
-                        } else if (item['cover-image'] && item['cover-image'].url) {
-                            coverImageUrl = item['cover-image'].url;
-                        } else if (item.image && item.image.url) {
-                            coverImageUrl = item.image.url;
-                        } else if (item['job-image'] && item['job-image'].url) {
-                            coverImageUrl = item['job-image'].url;
-                        }
-                        
-                        const stellenanzeige = {
-                            url: apiUrl,
-                            title: item.name || item.title || `Stellenanzeige ${index + 1}`,
-                            content: `STELLENANZEIGE: ${item.name || item.title || `Stelle ${index + 1}`}\n` +
-                                   `Beschreibung: ${item['job-description'] || item.description || 'Keine Beschreibung verfügbar'}\n` +
-                                   `Standort: ${item.location || 'Nicht angegeben'}\n` +
-                                   `Arbeitszeit: ${item['working-hours'] || item.zeit || 'Nicht angegeben'}\n` +
-                                   `URL: ${item.slug ? `https://www.diakonieffb.de/stellenanzeigen/${item.slug}` : 'URL nicht verfügbar'}\n` +
-                                   `COVER_IMAGE: ${coverImageUrl || 'Kein Bild verfügbar'}\n` +
-                                   `Vollständige Daten: ${JSON.stringify(item).replace(/\s+/g, ' ').trim()}`
-                        };
-                        content.push(stellenanzeige);
-                    } else {
-                        // Standard-Behandlung für andere Collections
-                        const pageContent = {
-                            url: apiUrl,
-                            title: item.name || item.title || `Webflow Item ${index + 1}`,
-                            content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
-                        };
-                        content.push(pageContent);
-                    }
-                });
-            } else if (data.data && Array.isArray(data.data)) {
-                data.data.forEach((item, index) => {
-                    const pageContent = {
-                        url: apiUrl,
-                        title: item.name || item.title || `Webflow Item ${index + 1}`,
-                        content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
-                    };
-                    content.push(pageContent);
-                });
-            } else {
-                // Fallback für andere API-Strukturen
-                const pageContent = {
-                    url: apiUrl,
-                    title: 'Webflow API Data',
-                    content: JSON.stringify(data).replace(/\s+/g, ' ').trim()
-                };
-                content.push(pageContent);
-            }
-            
-            console.log(`Webflow API data fetched from: ${apiUrl}`);
-            
-        } catch (error) {
-            console.error(`Error fetching Webflow API ${apiUrl}:`, error.message);
-        }
-    }
-    
-    return content;
-}
-
 // Cache für gescrapte Inhalte
 let scrapedContent = null;
 let lastScrapeTime = 0;
@@ -192,15 +90,8 @@ async function getCurrentContent() {
     const now = Date.now();
     
     if (!scrapedContent || (now - lastScrapeTime) > CACHE_DURATION) {
-        console.log('Fetching fresh content...');
-        
-        // Kombiniere beide Datenquellen
-        const [diakonieContent, webflowContent] = await Promise.all([
-            scrapeDiakonieContent(),
-            fetchWebflowContent()
-        ]);
-        
-        scrapedContent = [...diakonieContent, ...webflowContent];
+        console.log('Scraping fresh content...');
+        scrapedContent = await scrapeDiakonieContent();
         lastScrapeTime = now;
     }
     
@@ -272,35 +163,6 @@ HÄUFIGE FRAGEN:
 - "Brauche ich Beratung bei familiären Problemen?" → Erziehungsberatung, Schwangerschaftsberatung
 - "Gibt es kostenlose Hilfsangebote?" → Mittagstisch, Sozialberatung, Kummertelefon
 - "Wie kann ich mich bewerben?" → Stellenanzeigen, Ehrenamt, Honorarkräfte
-
-STELLENANZEIGEN-SPEZIFISCHE ANWEISUNGEN:
-Bei Fragen zu Stellenanzeigen oder Jobangeboten:
-1. Verwende IMMER die spezifischen URLs der einzelnen Stellenanzeigen aus den Webflow-Daten
-2. Format: <a href="https://www.diakonieffb.de/stellenanzeigen/SLUG" target="_blank">Stellenanzeige: TITEL</a>
-3. Erwähne relevante Details wie Standort, Arbeitszeit, Beschreibung
-4. Bei mehreren passenden Stellen: Liste alle mit individuellen Links auf
-5. Bei allgemeinen Stellenfragen: Verweise auf die allgemeine Stellenanzeigen-Seite UND nenne konkrete aktuelle Stellen
-6. ZEIGE IMMER die Cover-Bilder an, wenn verfügbar: <img src="BILD_URL" alt="Stellenanzeige TITEL" style="max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0;">
-
-Beispiel für Stellenanzeigen-Antwort mit Bildern:
-"<h3>Aktuelle Stellenangebote:</h3>
-<p>Hier sind passende Stellenanzeigen für Sie:</p>
-
-<div style='margin: 16px 0; padding: 12px; border-left: 3px solid #4C2073; background: #f8f9fa;'>
-<img src='https://uploads-ssl.webflow.com/.../erzieherin-krippe.jpg' alt='Erzieher/in in der Kinderkrippe' style='max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0; float: left; margin-right: 12px;'>
-<h4><strong><a href='https://www.diakonieffb.de/stellenanzeigen/erzieherin-krippe' target='_blank'>Erzieher/in in der Kinderkrippe</a></strong></h4>
-<p><strong>Standort:</strong> Fürstenfeldbruck | <strong>Arbeitszeit:</strong> Vollzeit</p>
-<p>Wir suchen eine engagierte Erzieher/in für unsere Kinderkrippe...</p>
-</div>
-
-<div style='margin: 16px 0; padding: 12px; border-left: 3px solid #4C2073; background: #f8f9fa;'>
-<img src='https://uploads-ssl.webflow.com/.../pflegekraft-seniorenheim.jpg' alt='Pflegekraft im Seniorenheim' style='max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0; float: left; margin-right: 12px;'>
-<h4><strong><a href='https://www.diakonieffb.de/stellenanzeigen/pflegekraft-seniorenheim' target='_blank'>Pflegekraft im Seniorenheim</a></strong></h4>
-<p><strong>Standort:</strong> Olching | <strong>Arbeitszeit:</strong> Teilzeit</p>
-<p>Wir suchen eine erfahrene Pflegekraft für unser Seniorenheim...</p>
-</div>
-
-<p>Alle Stellenanzeigen finden Sie auch auf unserer <a href='https://www.diakonieffb.de/stellenanzeigen' target='_blank'>Stellenanzeigen-Übersicht</a>."
 
 KONTAKT & TERMINE:
 - Bei allgemeinen Anfragen: Verweise auf die Kontaktseite der Website
@@ -475,17 +337,8 @@ app.listen(PORT, () => {
     console.log(`🔄 Content-Refresh verfügbar unter: http://localhost:${PORT}/api/refresh-content`);
     console.log(`📊 Content-Status verfügbar unter: http://localhost:${PORT}/api/content`);
     
-    // API-Keys prüfen
     if (!process.env.OPENAI_API_KEY) {
         console.warn('⚠️  WARNUNG: OPENAI_API_KEY nicht gesetzt!');
-    } else {
-        console.log('✅ OpenAI API Key konfiguriert');
-    }
-    
-    if (!process.env.WEBFLOW_API_TOKEN) {
-        console.warn('⚠️  WARNUNG: WEBFLOW_API_TOKEN nicht gesetzt! Webflow APIs werden übersprungen.');
-    } else {
-        console.log('✅ Webflow API Token konfiguriert');
     }
     
     // Initiales Scraping beim Start
