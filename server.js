@@ -59,18 +59,74 @@ async function scrapeDiakonieContent() {
             
             const $ = cheerio.load(response.data);
             
-            // Entferne Script- und Style-Tags
-            $('script, style, nav, footer, header').remove();
-            
-            // Extrahiere Text-Inhalte
-            const pageContent = {
-                url: url,
-                title: $('title').text().trim(),
-                content: $('body').text().replace(/\s+/g, ' ').trim()
-            };
-            
-            content.push(pageContent);
-            console.log(`Content scraped from: ${url}`);
+            // Spezielle Behandlung für Stellenanzeigen-Seite
+            if (url.includes('stellenanzeigen')) {
+                const jobListings = [];
+                
+                // Extrahiere Stellenanzeigen mit der korrekten HTML-Struktur
+                $('.collection-list-content').each((index, element) => {
+                    const jobContainer = $(element);
+                    
+                    // Job-Name extrahieren
+                    const jobName = jobContainer.find('[fs-cmsfilter-field="Name"]').text().trim();
+                    
+                    // Standort extrahieren (zuerst das leere Feld, dann den tatsächlichen Text)
+                    const location = jobContainer.find('[fs-cmsfilter-field="Standort"]').text().trim() || 
+                                   jobContainer.find('.text-block-222.oberseite').not('[fs-cmsfilter-field]').first().text().trim();
+                    
+                    // Beschäftigungsart extrahieren
+                    const jobTypes = [];
+                    jobContainer.find('[fs-cmsfilter-field="Beschäftigungsumfang"]').each((i, el) => {
+                        const type = $(el).text().trim();
+                        if (type && !jobTypes.includes(type)) {
+                            jobTypes.push(type);
+                        }
+                    });
+                    
+                    // Bereich extrahieren
+                    const bereich = jobContainer.find('[fs-cmsfilter-field="Bereich"]').text().trim();
+                    
+                    // Startdatum extrahieren
+                    const startDate = jobContainer.find('.text-block-222-copy.oberseite').text().trim();
+                    
+                    // Link zur Detailseite
+                    const detailLink = jobContainer.find('a[href*="/stellenanzeigen/"]').attr('href');
+                    
+                    if (jobName) {
+                        jobListings.push({
+                            name: jobName,
+                            location: location,
+                            types: jobTypes,
+                            bereich: bereich,
+                            startDate: startDate,
+                            detailLink: detailLink,
+                            fullText: jobContainer.text().replace(/\s+/g, ' ').trim()
+                        });
+                    }
+                });
+                
+                const pageContent = {
+                    url: url,
+                    title: $('title').text().trim(),
+                    content: $('body').text().replace(/\s+/g, ' ').trim(),
+                    jobListings: jobListings
+                };
+                
+                content.push(pageContent);
+                console.log(`Content scraped from: ${url} (${jobListings.length} Stellenanzeigen gefunden)`);
+            } else {
+                // Standard-Scraping für andere Seiten
+                $('script, style, nav, footer, header').remove();
+                
+                const pageContent = {
+                    url: url,
+                    title: $('title').text().trim(),
+                    content: $('body').text().replace(/\s+/g, ' ').trim()
+                };
+                
+                content.push(pageContent);
+                console.log(`Content scraped from: ${url}`);
+            }
             
         } catch (error) {
             console.error(`Error scraping ${url}:`, error.message);
@@ -251,28 +307,31 @@ MUSTER für alle strukturierten Antworten:
 </ul>"
 
 Beispiel für Stellenanzeigen (alle Bereiche):
-"<h3>Unsere Stellenangebote:</h3>
-<p>Die Diakonie Oberbayern West bietet Stellenanzeigen in verschiedenen Bereichen an:</p>
+"<h3>Unsere aktuellen Stellenangebote:</h3>
+<p>Die Diakonie Oberbayern West hat derzeit folgende Stellen zu vergeben:</p>
 
 <ul>
-<li><strong>Stationäre Pflege</strong> - Seniorenzentren und Pflegeheime</li>
-<li><strong>Ambulante Pflege</strong> - Für Pflegekräfte, die zu den Menschen nach Hause gehen</li>
-<li><strong>Verwaltung</strong> - Bürotätigkeiten und Verwaltungsaufgaben</li>
-<li><strong>Pädagogik</strong> - Kinderkrippen, Kindergärten und Horte</li>
-<li><strong>Beratung</strong> - Sozialberatung und Erziehungsberatung</li>
-<li><strong>Soziale Arbeit</strong> - Unterstützung von Menschen in Notlagen</li>
-</ul>"
+<li><strong>Betreuungsassistenz (m/w/d)</strong> - 20 Std./Woche, Mammendorf, Teilzeit, sofort</li>
+<li><strong>Stellv. Pflegedienstleitung im ambulanten Dienst (m/w/d)</strong> - Voll- oder Teilzeit, Mammendorf, sofort</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Coach gesucht, Maisach, Voll- oder Teilzeit, sofort</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Teilzeit, Fürstenfeldbruck, sofort</li>
+<li><strong>Teamassistenz (m/w/d)</strong> - 20-40 Std./Woche, Gilching, Teilzeit/Vollzeit, sofort</li>
+<li><strong>Sozialpädagog*in (m/w/d)</strong> - 22 h/Woche, Gilching, Teilzeit, sofort</li>
+<li><strong>Projektmanager*in Bau & Ausstattung (m/w/d)</strong> - Vollzeit, Fürstenfeldbruck, sofort</li>
+<li><strong>Einrichtungsleitung (m/w/d)</strong> - Vollzeit, Puchheim, ab sofort</li>
+<li><strong>Pflegefachkraft (m/w/d)</strong> - 10 h/Woche, Mammendorf, Teilzeit, sofort</li>
+<li><strong>Fach- und Ergänzungskraft</strong> - Krailling, Teilzeit/Vollzeit, sofort</li>
+</ul>
+
+<p>Alle aktuellen Stellenanzeigen finden Sie unter: <a href='https://www.diakonieffb.de/stellenanzeigen' target='_blank'>Stellenanzeigen</a></p>"
 
 Beispiel für spezifische Stellenanzeigen (Verwaltung):
 "<h3>Stellenanzeigen im Bereich Verwaltung:</h3>
-<p>In der Verwaltung der Diakonie Oberbayern West finden Sie folgende Stellenangebote:</p>
+<p>In der Verwaltung der Diakonie Oberbayern West finden Sie folgende aktuelle Stellenangebote:</p>
 
 <ul>
-<li><strong>Bürotätigkeiten</strong> - Sekretariat, Empfang, allgemeine Verwaltungsaufgaben</li>
-<li><strong>Personalwesen</strong> - Personalverwaltung und -betreuung</li>
-<li><strong>Finanzwesen</strong> - Buchhaltung, Controlling, Finanzverwaltung</li>
-<li><strong>Öffentlichkeitsarbeit</strong> - Pressearbeit, Marketing, Kommunikation</li>
-<li><strong>IT-Support</strong> - Systemadministration und technischer Support</li>
+<li><strong>Projektmanager*in Bau & Ausstattung (m/w/d)</strong> - Vollzeit, Fürstenfeldbruck, sofort</li>
+<li><strong>Teamassistenz (m/w/d)</strong> - 20-40 Std./Woche, Gilching, Teilzeit/Vollzeit, sofort</li>
 </ul>
 
 <p>Alle aktuellen Stellenanzeigen finden Sie unter: <a href='https://www.diakonieffb.de/stellenanzeigen' target='_blank'>Stellenanzeigen</a></p>"
@@ -280,21 +339,30 @@ Beispiel für spezifische Stellenanzeigen (Verwaltung):
 Beispiele für andere spezifische Bereiche:
 
 Pädagogik: "<h3>Stellenanzeigen im Bereich Pädagogik:</h3>
-<p>In der Pädagogik der Diakonie Oberbayern West finden Sie folgende Stellenangebote:</p>
+<p>In der Pädagogik der Diakonie Oberbayern West finden Sie folgende aktuelle Stellenangebote:</p>
 <ul>
-<li><strong>Kinderkrippen</strong> - Betreuung der Kleinsten (0-3 Jahre)</li>
-<li><strong>Kindergärten</strong> - Vorschulische Bildung und Betreuung</li>
-<li><strong>Horte</strong> - Nachmittagsbetreuung für Schulkinder</li>
-<li><strong>Erziehungsberatung</strong> - Unterstützung von Familien</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Coach gesucht, Maisach, Voll- oder Teilzeit, sofort</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Teilzeit, Fürstenfeldbruck, sofort</li>
+<li><strong>Sozialpädagog*in (m/w/d)</strong> - 22 h/Woche, Gilching, Teilzeit, sofort</li>
+<li><strong>Fach- und Ergänzungskraft</strong> - Krailling, Teilzeit/Vollzeit, sofort</li>
+<li><strong>Erzieher*in / Kinderpfleger*in (m/w/d)</strong> - Martinsried, Voll- oder Teilzeit, September 2025</li>
+<li><strong>Kinderpfleger*in / päd. Ergänzungskraft (m/w/d)</strong> - Gilching, Teilzeit, sofort</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Gruppenleitung, Gilching, 30-35 Std./Woche, sofort</li>
+<li><strong>Erzieher*in / päd. Fachkraft (m/w/d)</strong> - Kindergarten Sonnenblume, Voll- oder Teilzeit, 01.01.2025</li>
 </ul>"
 
 Pflege: "<h3>Stellenanzeigen im Bereich Pflege:</h3>
-<p>In der Pflege der Diakonie Oberbayern West finden Sie folgende Stellenangebote:</p>
+<p>In der Pflege der Diakonie Oberbayern West finden Sie folgende aktuelle Stellenangebote:</p>
 <ul>
-<li><strong>Stationäre Pflege</strong> - Seniorenzentren und Pflegeheime</li>
-<li><strong>Ambulante Pflege</strong> - Hausbesuche und mobile Pflege</li>
-<li><strong>Pflegedienstleitung</strong> - Führung und Koordination</li>
-<li><strong>Betreuungsassistenz</strong> - Unterstützung bei der Grundpflege</li>
+<li><strong>Betreuungsassistenz (m/w/d)</strong> - 20 Std./Woche, Mammendorf, Teilzeit, sofort</li>
+<li><strong>Stellv. Pflegedienstleitung im ambulanten Dienst (m/w/d)</strong> - Voll- oder Teilzeit, Mammendorf, sofort</li>
+<li><strong>Einrichtungsleitung (m/w/d)</strong> - Vollzeit, Puchheim, ab sofort</li>
+<li><strong>Pflegefachkraft (m/w/d)</strong> - 10 h/Woche, Mammendorf, Teilzeit, sofort</li>
+<li><strong>Pflegefachkraft (m/w/d)</strong> - Seniorenzentrum Haus Elisabeth, Puchheim, Voll- oder Teilzeit, sofort</li>
+<li><strong>Gerontopsychiatrische Fachkraft (m/w/d)</strong> - Puchheim, Voll- oder Teilzeit, ab sofort</li>
+<li><strong>Palliativfachkraft (m/w/d)</strong> - Puchheim, Voll- oder Teilzeit, ab sofort</li>
+<li><strong>Pflegefachkraft (m/w/d) als Praxisanleitung</strong> - Puchheim, Voll- oder Teilzeit, ab sofort</li>
+<li><strong>Pflegehelfer*in im ambulanten Dienst (m/w/d)</strong> - Teilzeit, Fürstenfeldbruck, sofort</li>
 </ul>"
 
 WICHTIG: Wenn nach einem spezifischen Bereich gefragt wird, zeige NUR die relevanten Informationen für diesen Bereich an, nicht alle Bereiche!
@@ -316,8 +384,26 @@ app.post('/api/chat', async (req, res) => {
         const currentContent = await getCurrentContent();
         
         // Erstelle erweiterten System-Prompt mit aktuellen Inhalten
-        const enhancedSystemPrompt = SYSTEM_PROMPT + '\n\nAKTUELLE WEBSITE-INHALTE:\n' + 
-            currentContent.map(page => `URL: ${page.url}\nTitel: ${page.title}\nInhalt: ${page.content.substring(0, 2000)}...`).join('\n\n');
+        let enhancedSystemPrompt = SYSTEM_PROMPT + '\n\nAKTUELLE WEBSITE-INHALTE:\n';
+        
+        currentContent.forEach(page => {
+            enhancedSystemPrompt += `URL: ${page.url}\nTitel: ${page.title}\nInhalt: ${page.content.substring(0, 2000)}...\n\n`;
+            
+            // Füge strukturierte Stellenanzeigen hinzu, falls vorhanden
+            if (page.jobListings && page.jobListings.length > 0) {
+                enhancedSystemPrompt += `AKTUELLE STELLENANZEIGEN (${page.jobListings.length} Stellen):\n`;
+                page.jobListings.forEach((job, index) => {
+                    enhancedSystemPrompt += `${index + 1}. ${job.name}`;
+                    if (job.location) enhancedSystemPrompt += ` - Standort: ${job.location}`;
+                    if (job.types && job.types.length > 0) enhancedSystemPrompt += ` - Art: ${job.types.join(', ')}`;
+                    if (job.bereich) enhancedSystemPrompt += ` - Bereich: ${job.bereich}`;
+                    if (job.startDate) enhancedSystemPrompt += ` - Start: ${job.startDate}`;
+                    if (job.detailLink) enhancedSystemPrompt += ` - Link: ${job.detailLink}`;
+                    enhancedSystemPrompt += '\n';
+                });
+                enhancedSystemPrompt += '\n';
+            }
+        });
 
         // OpenAI API Aufruf
         const completion = await openai.chat.completions.create({
