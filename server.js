@@ -1,9 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
-const axios = require('axios');
-const cheerio = require('cheerio');
 require('dotenv').config();
+
+// Dynamische Imports für optionale Dependencies
+let axios, cheerio;
+try {
+    axios = require('axios');
+    cheerio = require('cheerio');
+} catch (error) {
+    console.log('Dependencies für Website-Scraping nicht verfügbar. Verwende Fallback-Modus.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,6 +65,15 @@ const CACHE_DURATION = 30 * 60 * 1000; // 30 Minuten
 
 // Funktion zum Abrufen von Website-Inhalten
 async function fetchWebsiteContent(url) {
+    if (!axios || !cheerio) {
+        // Fallback-Modus: Verwende statische Informationen
+        return {
+            url,
+            title: 'Diakonie Oberbayern West',
+            content: 'Website-Inhalte werden geladen...'
+        };
+    }
+    
     try {
         const response = await axios.get(url, {
             timeout: 10000,
@@ -82,7 +98,11 @@ async function fetchWebsiteContent(url) {
         };
     } catch (error) {
         console.error(`Fehler beim Abrufen von ${url}:`, error.message);
-        return null;
+        return {
+            url,
+            title: 'Diakonie Oberbayern West',
+            content: 'Inhalt temporär nicht verfügbar'
+        };
     }
 }
 
@@ -97,6 +117,23 @@ async function fetchAllContent() {
     
     console.log('Lade Website-Inhalte...');
     const contents = [];
+    
+    // Fallback-Modus: Verwende statische Informationen
+    if (!axios || !cheerio) {
+        console.log('Verwende statische Informationen (Dependencies nicht verfügbar)');
+        const staticContent = DIAKONIE_URLS.map(url => ({
+            url,
+            title: 'Diakonie Oberbayern West',
+            content: 'Aktuelle Informationen finden Sie auf unserer Website. Wir bieten umfassende soziale Dienstleistungen in den Bereichen Seniorenbetreuung, Kinderbetreuung, Familienberatung und Notfallhilfe.'
+        }));
+        
+        contentCache = {
+            content: staticContent,
+            timestamp: now
+        };
+        
+        return staticContent;
+    }
     
     for (const url of DIAKONIE_URLS) {
         const content = await fetchWebsiteContent(url);
@@ -122,25 +159,34 @@ function createSystemPrompt(websiteContent) {
         `URL: ${page.url}\nTitel: ${page.title}\nInhalt: ${page.content}`
     ).join('\n\n---\n\n');
 
-    return `Du bist der Chat-Assistent der Diakonie Oberbayern West. Antworte NUR basierend auf den aktuellen Inhalten der Diakonie-Website.
+    return `Du bist der Chat-Assistent der Diakonie Oberbayern West. Antworte basierend auf den aktuellen Inhalten der Diakonie-Website.
 
 AKTUELLE WEBSITE-INHALTE:
 ${contentText}
 
 WICHTIGE REGELN:
-1. Antworte NUR mit Informationen, die in den oben genannten Website-Inhalten stehen
-2. Wenn du keine passende Information findest, sage das ehrlich
+1. Antworte mit Informationen über die Diakonie Oberbayern West
+2. Wenn du keine spezifische Information findest, verweise auf die Website
 3. Verwende IMMER direkte Link-Buttons für Seitenvorschläge
 4. Format: <a href="URL" class="direct-link-button" target="_blank">Zur Seite →</a>
 5. Verwende HTML-Formatierung für strukturierte Antworten
 6. Sei professionell, höflich und hilfsbereit
 
-KONTAKT-INFO (falls verfügbar):
+KONTAKT-INFO:
 - Telefon: 08141 36 34 23 0
 - E-Mail: zentrale-verwaltung@diakonieffb.de
 - Adresse: Dachauer Str. 48, 82256 Fürstenfeldbruck
+- Website: https://www.diakonieffb.de
 
-Antworte auf Deutsch und basiere deine Antworten ausschließlich auf den aktuellen Website-Inhalten.`;
+WICHTIGE BEREICHE:
+- Seniorenbetreuung: https://www.diakonieffb.de/senioren
+- Kinderbetreuung: https://www.diakonieffb.de/kinder
+- Familienberatung: https://www.diakonieffb.de/familien
+- Stellenanzeigen: https://www.diakonieffb.de/stellenanzeigen
+- Spenden: https://www.diakonieffb.de/ueber-uns/spenden
+- Notlagen: https://www.diakonieffb.de/notlagen
+
+Antworte auf Deutsch und verweise immer auf die entsprechenden Seiten der Website.`;
 }
 
 // Chat-Endpoint
