@@ -119,6 +119,18 @@ async function fetchWebflowContent() {
                 data.items.forEach((item, index) => {
                     // Spezielle Behandlung für Stellenanzeigen
                     if (apiUrl.includes('65ca82983e1a2b02d623b311')) {
+                        // Cover-Bild URL extrahieren
+                        let coverImageUrl = '';
+                        if (item.cover && item.cover.url) {
+                            coverImageUrl = item.cover.url;
+                        } else if (item['cover-image'] && item['cover-image'].url) {
+                            coverImageUrl = item['cover-image'].url;
+                        } else if (item.image && item.image.url) {
+                            coverImageUrl = item.image.url;
+                        } else if (item['job-image'] && item['job-image'].url) {
+                            coverImageUrl = item['job-image'].url;
+                        }
+                        
                         const stellenanzeige = {
                             url: apiUrl,
                             title: item.name || item.title || `Stellenanzeige ${index + 1}`,
@@ -127,6 +139,7 @@ async function fetchWebflowContent() {
                                    `Standort: ${item.location || 'Nicht angegeben'}\n` +
                                    `Arbeitszeit: ${item['working-hours'] || item.zeit || 'Nicht angegeben'}\n` +
                                    `URL: ${item.slug ? `https://www.diakonieffb.de/stellenanzeigen/${item.slug}` : 'URL nicht verfügbar'}\n` +
+                                   `COVER_IMAGE: ${coverImageUrl || 'Kein Bild verfügbar'}\n` +
                                    `Vollständige Daten: ${JSON.stringify(item).replace(/\s+/g, ' ').trim()}`
                         };
                         content.push(stellenanzeige);
@@ -267,14 +280,26 @@ Bei Fragen zu Stellenanzeigen oder Jobangeboten:
 3. Erwähne relevante Details wie Standort, Arbeitszeit, Beschreibung
 4. Bei mehreren passenden Stellen: Liste alle mit individuellen Links auf
 5. Bei allgemeinen Stellenfragen: Verweise auf die allgemeine Stellenanzeigen-Seite UND nenne konkrete aktuelle Stellen
+6. ZEIGE IMMER die Cover-Bilder an, wenn verfügbar: <img src="BILD_URL" alt="Stellenanzeige TITEL" style="max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0;">
 
-Beispiel für Stellenanzeigen-Antwort:
+Beispiel für Stellenanzeigen-Antwort mit Bildern:
 "<h3>Aktuelle Stellenangebote:</h3>
 <p>Hier sind passende Stellenanzeigen für Sie:</p>
-<ul>
-<li><strong><a href='https://www.diakonieffb.de/stellenanzeigen/erzieherin-krippe' target='_blank'>Erzieher/in in der Kinderkrippe</a></strong> - Vollzeit, Fürstenfeldbruck</li>
-<li><strong><a href='https://www.diakonieffb.de/stellenanzeigen/pflegekraft-seniorenheim' target='_blank'>Pflegekraft im Seniorenheim</a></strong> - Teilzeit, Olching</li>
-</ul>
+
+<div style='margin: 16px 0; padding: 12px; border-left: 3px solid #4C2073; background: #f8f9fa;'>
+<img src='https://uploads-ssl.webflow.com/.../erzieherin-krippe.jpg' alt='Erzieher/in in der Kinderkrippe' style='max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0; float: left; margin-right: 12px;'>
+<h4><strong><a href='https://www.diakonieffb.de/stellenanzeigen/erzieherin-krippe' target='_blank'>Erzieher/in in der Kinderkrippe</a></strong></h4>
+<p><strong>Standort:</strong> Fürstenfeldbruck | <strong>Arbeitszeit:</strong> Vollzeit</p>
+<p>Wir suchen eine engagierte Erzieher/in für unsere Kinderkrippe...</p>
+</div>
+
+<div style='margin: 16px 0; padding: 12px; border-left: 3px solid #4C2073; background: #f8f9fa;'>
+<img src='https://uploads-ssl.webflow.com/.../pflegekraft-seniorenheim.jpg' alt='Pflegekraft im Seniorenheim' style='max-width: 200px; height: auto; border-radius: 8px; margin: 8px 0; float: left; margin-right: 12px;'>
+<h4><strong><a href='https://www.diakonieffb.de/stellenanzeigen/pflegekraft-seniorenheim' target='_blank'>Pflegekraft im Seniorenheim</a></strong></h4>
+<p><strong>Standort:</strong> Olching | <strong>Arbeitszeit:</strong> Teilzeit</p>
+<p>Wir suchen eine erfahrene Pflegekraft für unser Seniorenheim...</p>
+</div>
+
 <p>Alle Stellenanzeigen finden Sie auch auf unserer <a href='https://www.diakonieffb.de/stellenanzeigen' target='_blank'>Stellenanzeigen-Übersicht</a>."
 
 KONTAKT & TERMINE:
