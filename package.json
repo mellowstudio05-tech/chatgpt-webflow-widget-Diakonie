@@ -1,5 +1,5 @@
 {
-  "name": "chatgpt-webflow-widget-Diakonie",
+  "name": "chatgpt-webflow-widget-diakonie",
   "version": "1.0.0",
   "description": "KI-Assistent für die Diakonie Oberbayern West",
   "main": "server.js",
