@@ -46,8 +46,8 @@ const DIAKONIE_URLS = [
 
 // Webflow API URLs (fügen Sie hier Ihre API-URLs hinzu)
 const WEBFLOW_API_URLS = [
-    // Beispiel: 'https://api.webflow.com/v2/collections/your-collection-id/items',
-    // Fügen Sie hier Ihre Webflow API-URLs hinzu
+    'https://api.webflow.com/v2/collections/65ca82983e1a2b02d623b311/items', // Stellenanzeigen Collection
+    // Weitere API-URLs hier hinzufügen
 ];
 
 // Web-Scraping Funktion für HTML-Seiten
@@ -117,12 +117,28 @@ async function fetchWebflowContent() {
             
             if (data.items && Array.isArray(data.items)) {
                 data.items.forEach((item, index) => {
-                    const pageContent = {
-                        url: apiUrl,
-                        title: item.name || item.title || `Webflow Item ${index + 1}`,
-                        content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
-                    };
-                    content.push(pageContent);
+                    // Spezielle Behandlung für Stellenanzeigen
+                    if (apiUrl.includes('65ca82983e1a2b02d623b311')) {
+                        const stellenanzeige = {
+                            url: apiUrl,
+                            title: item.name || item.title || `Stellenanzeige ${index + 1}`,
+                            content: `STELLENANZEIGE: ${item.name || item.title || `Stelle ${index + 1}`}\n` +
+                                   `Beschreibung: ${item['job-description'] || item.description || 'Keine Beschreibung verfügbar'}\n` +
+                                   `Standort: ${item.location || 'Nicht angegeben'}\n` +
+                                   `Arbeitszeit: ${item['working-hours'] || item.zeit || 'Nicht angegeben'}\n` +
+                                   `URL: ${item.slug ? `https://www.diakonieffb.de/stellenanzeigen/${item.slug}` : 'URL nicht verfügbar'}\n` +
+                                   `Vollständige Daten: ${JSON.stringify(item).replace(/\s+/g, ' ').trim()}`
+                        };
+                        content.push(stellenanzeige);
+                    } else {
+                        // Standard-Behandlung für andere Collections
+                        const pageContent = {
+                            url: apiUrl,
+                            title: item.name || item.title || `Webflow Item ${index + 1}`,
+                            content: JSON.stringify(item).replace(/\s+/g, ' ').trim()
+                        };
+                        content.push(pageContent);
+                    }
                 });
             } else if (data.data && Array.isArray(data.data)) {
                 data.data.forEach((item, index) => {
@@ -243,6 +259,23 @@ HÄUFIGE FRAGEN:
 - "Brauche ich Beratung bei familiären Problemen?" → Erziehungsberatung, Schwangerschaftsberatung
 - "Gibt es kostenlose Hilfsangebote?" → Mittagstisch, Sozialberatung, Kummertelefon
 - "Wie kann ich mich bewerben?" → Stellenanzeigen, Ehrenamt, Honorarkräfte
+
+STELLENANZEIGEN-SPEZIFISCHE ANWEISUNGEN:
+Bei Fragen zu Stellenanzeigen oder Jobangeboten:
+1. Verwende IMMER die spezifischen URLs der einzelnen Stellenanzeigen aus den Webflow-Daten
+2. Format: <a href="https://www.diakonieffb.de/stellenanzeigen/SLUG" target="_blank">Stellenanzeige: TITEL</a>
+3. Erwähne relevante Details wie Standort, Arbeitszeit, Beschreibung
+4. Bei mehreren passenden Stellen: Liste alle mit individuellen Links auf
+5. Bei allgemeinen Stellenfragen: Verweise auf die allgemeine Stellenanzeigen-Seite UND nenne konkrete aktuelle Stellen
+
+Beispiel für Stellenanzeigen-Antwort:
+"<h3>Aktuelle Stellenangebote:</h3>
+<p>Hier sind passende Stellenanzeigen für Sie:</p>
+<ul>
+<li><strong><a href='https://www.diakonieffb.de/stellenanzeigen/erzieherin-krippe' target='_blank'>Erzieher/in in der Kinderkrippe</a></strong> - Vollzeit, Fürstenfeldbruck</li>
+<li><strong><a href='https://www.diakonieffb.de/stellenanzeigen/pflegekraft-seniorenheim' target='_blank'>Pflegekraft im Seniorenheim</a></strong> - Teilzeit, Olching</li>
+</ul>
+<p>Alle Stellenanzeigen finden Sie auch auf unserer <a href='https://www.diakonieffb.de/stellenanzeigen' target='_blank'>Stellenanzeigen-Übersicht</a>."
 
 KONTAKT & TERMINE:
 - Bei allgemeinen Anfragen: Verweise auf die Kontaktseite der Website
